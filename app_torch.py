@@ -1,5 +1,7 @@
 from flask import Flask, render_template, request
-from tensorflow.keras.models import load_model
+
+import torch
+
 import numpy as np
 import joblib
 
@@ -28,6 +30,7 @@ def preprocess_data(data):
     
     x_min_max_scaled = joblib.load('./tmp/x_min_max_scaler.save')
     scaled_X = x_min_max_scaled.transform(X)
+    scaled_X = torch.FloatTensor(scaled_X)
     
     return scaled_X
     
@@ -55,9 +58,13 @@ def result():
     X = preprocess_data(data) # shape= (1, 8)
     
     # Model predict
-    model = load_model('./tmp/model')
+    model = torch.load('./tmp_pytorch/model.pt')
     y_min_max_scaler = joblib.load('./tmp/y_min_max_scaler.save')
-    pred = model.predict(X)
+    
+    with torch.no_grad():
+        model.eval()
+        pred = model(X)
+        
     pred = y_min_max_scaler.inverse_transform(pred) # shape = (1, 1)
     
     # return prediction
